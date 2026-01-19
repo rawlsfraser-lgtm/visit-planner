@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visit Planner</title>
+
+  <link rel="manifest" href="manifest.json" />
+
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #f6f7f9; }
+    header { background: #111827; color: white; padding: 14px 16px; font-weight: 700; }
+    .wrap { padding: 14px; max-width: 1100px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 900px) { .grid { grid-template-columns: 340px 1fr; } }
+
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 700px) { .row.two { grid-template-columns: 1fr 1fr; } }
+
+    label { display:block; font-size: 12px; color: #374151; margin: 6px 0 4px; font-weight: 600; }
+    input, textarea {
+      width: 100%; box-sizing: border-box; padding: 10px 10px;
+      border-radius: 10px; border: 1px solid #d1d5db; background: #fff;
+      font-size: 14px;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .btns { display:flex; gap:10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 1px solid #d1d5db; background: #fff; padding: 10px 12px;
+      border-radius: 12px; font-weight: 700; cursor: pointer;
+    }
+    button.primary { background:#111827; color:#fff; border-color:#111827; }
+    button.warn { background:#b45309; color:#fff; border-color:#b45309; }
+    button.danger { background:#b91c1c; color:#fff; border-color:#b91c1c; }
+
+    .list { display:flex; flex-direction:column; gap:8px; margin-top: 10px; }
+    .item {
+      border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; cursor:pointer;
+      display:flex; justify-content:space-between; gap: 10px; align-items: baseline;
+    }
+    .item b { display:block; }
+    .muted { color:#6b7280; font-size: 12px; }
+    .pill { font-size: 12px; color:#111827; background:#f3f4f6; padding: 3px 8px; border-radius: 999px; }
+    .title { font-size: 16px; font-weight: 800; margin: 0 0 8px; }
+    .small { font-size: 12px; color:#6b7280; }
+
+    .banner {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 13px;
+      color: #111827;
+    }
+
+    /* Printing: hide navigation + buttons */
+    @media print {
+      header, .no-print { display:none !important; }
+      body { background: #fff; }
+      .card { border: none; box-shadow:none; }
+      .wrap { max-width: none; margin: 0; padding: 0; }
+    }
+  </style>
+
+  <!-- Google Identity Services (required for Drive backup) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body>
+<header>Visit Planner</header>
+
+<div class="wrap grid">
+  <div class="card no-print">
+    <div class="title">Saved Visits</div>
+    <div class="small">Offline-first. Data saves on this device. Use Drive Sync when online.</div>
+
+    <div class="banner" id="onlineBanner" style="display:none;"></div>
+
+    <div class="btns">
+      <button class="primary" id="newBtn">New Visit</button>
+      <button id="backupBtn">Export Backup (JSON)</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" />
+      <button id="importBtn">Import Backup</button>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+    <div class="title" style="font-size:14px;">Google Drive Backup</div>
+    <div class="small">Sign in once, then use Sync when you have internet.</div>
+
+    <div class="btns">
+      <button id="googleSignInBtn">Sign in to Google</button>
+      <button class="warn" id="syncBtn">Sync to Drive Now</button>
+    </div>
+    <div class="small" id="syncStatus"></div>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+    <label>Search</label>
+    <input id="searchBox" placeholder="Search customer / location..." />
+
+    <div class="list" id="visitList"></div>
+  </div>
+
+  <div class="card" id="formCard">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+      <div>
+        <div class="title">Visit Worksheet</div>
+        <div class="small" id="statusText">New record</div>
+      </div>
+      <span class="pill" id="recordPill">Unsaved</span>
+    </div>
+
+    <div class="row two">
+      <div>
+        <label>Customer Name</label>
+        <input id="customerName" />
+      </div>
+      <div>
+        <label>Location</label>
+        <input id="location" />
+      </div>
+    </div>
+
+    <div class="row two">
+      <div>
+        <label>Key Contact</label>
+        <input id="contact" />
+      </div>
+      <div>
+        <label>Date</label>
+        <input id="date" type="date" />
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+    <div class="title" style="font-size:14px;">Operations</div>
+    <label>Machines / Lines</label><textarea id="machines"></textarea>
+    <label>Product Produced</label><textarea id="product"></textarea>
+    <label>Current Tooling</label><textarea id="tooling"></textarea>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+    <div class="title" style="font-size:14px;">Performance</div>
+    <div class="row two">
+      <div><label>Blade Change Interval</label><input id="bladeChange" /></div>
+      <div><label>Grind Interval</label><input id="grindInterval" /></div>
+    </div>
+    <label>Known Issues</label><textarea id="issues"></textarea>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+    <div class="title" style="font-size:14px;">Opportunity Areas</div>
+    <label>Slitter Knives</label><textarea id="slitter"></textarea>
+    <label>Cutoff Knives</label><textarea id="cutoff"></textarea>
+    <label>Perf Knives</label><textarea id="perf"></textarea>
+    <label>Grinding Systems</label><textarea id="grinding"></textarea>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+    <div class="title" style="font-size:14px;">Sales Plan</div>
+    <label>Visit Goal</label><textarea id="goal"></textarea>
+    <label>Next Step</label><textarea id="nextStep"></textarea>
+
+    <div class="btns no-print">
+      <button class="primary" id="saveBtn">Save</button>
+      <button id="printBtn">Print / Save as PDF</button>
+      <button class="danger" id="deleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main app logic -->
+<script type="module" src="app.js"></script>
+</body>
+</html>
